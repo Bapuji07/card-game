@@ -4,9 +4,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Remove the invalid eslint key and just use typescript ignore for now
 };
 
 export default nextConfig;

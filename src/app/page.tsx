@@ -1,19 +1,53 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useEffect, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { PlayingCard } from '@/components/PlayingCard';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import useSound from 'use-sound';
 
-let socket;
+let socket: Socket;
 
 export default function Home() {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [room, setRoom] = useState(null);
+  const [room, setRoom] = useState<any>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [takeCount, setTakeCount] = useState(5);
+
+  // Sound effects
+  const [playClick] = useSound('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3', { volume: 0.5 });
+  const [playWin] = useSound('https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3', { volume: 0.5 });
+  const [playDeal] = useSound('https://assets.mixkit.co/active_storage/sfx/2592/2592-preview.mp3', { volume: 0.3 });
+
+  const triggerVictory = useCallback(() => {
+    playWin();
+    const duration = 3 * 1000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#fbbf24', '#34d399', '#ffffff']
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#fbbf24', '#34d399', '#ffffff']
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  }, [playWin]);
 
   useEffect(() => {
     socket = io();
@@ -24,14 +58,19 @@ export default function Home() {
     });
 
     socket.on('room-updated', (updatedRoom) => {
-      setRoom(updatedRoom);
-      if (updatedRoom.gameState === 'FINISHED') {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      }
+      setRoom((prev: any) => {
+        // Play deal sound if card count changed
+        const prevCards = (prev?.challengerPile?.length || 0) + (prev?.dealerPile?.length || 0);
+        const newCards = (updatedRoom?.challengerPile?.length || 0) + (updatedRoom?.dealerPile?.length || 0);
+        if (newCards > prevCards) {
+          playDeal();
+        }
+        
+        if (updatedRoom.gameState === 'FINISHED' && prev?.gameState !== 'FINISHED') {
+          triggerVictory();
+        }
+        return updatedRoom;
+      });
     });
 
     socket.on('error', (msg) => {
@@ -44,37 +83,45 @@ export default function Home() {
   }, []);
 
   const createRoom = () => {
+    playClick();
     if (!playerName) return alert('Enter name');
     socket.emit('create-room', { playerName });
   };
 
   const joinRoom = () => {
+    playClick();
     if (!playerName || !roomId) return alert('Enter name and room ID');
     socket.emit('join-room', { roomId, playerName });
     setIsJoined(true);
   };
 
   const startGame = () => {
+    playClick();
     socket.emit('start-game', room.id);
   };
 
   const takeCards = () => {
+    playClick();
     socket.emit('take-cards', { roomId: room.id, count: takeCount });
   };
 
-  const selectSide = (side) => {
+  const selectSide = (side: string) => {
+    playClick();
     socket.emit('select-side', { roomId: room.id, side });
   };
 
-  const placeBet = (amount) => {
+  const placeBet = (amount: number) => {
+    playClick();
     socket.emit('place-bet', { roomId: room.id, amount });
   };
 
   const startDealing = () => {
+    playClick();
     socket.emit('start-dealing', room.id);
   };
 
   const dealNext = () => {
+    playClick();
     socket.emit('deal-next', room.id);
   };
 
