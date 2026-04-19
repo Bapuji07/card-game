@@ -2,11 +2,22 @@
 
 import { motion } from 'framer-motion';
 
-const getCardColor = (suit) => {
+interface Card {
+  rank: string;
+  suit: string;
+}
+
+interface PlayingCardProps {
+  card?: Card;
+  isHidden?: boolean;
+  className?: string;
+}
+
+const getCardColor = (suit: string) => {
   return suit === 'hearts' || suit === 'diamonds' ? 'text-red-500' : 'text-black';
 };
 
-const getSuitSymbol = (suit) => {
+const getSuitSymbol = (suit: string) => {
   switch (suit) {
     case 'hearts': return '♥';
     case 'diamonds': return '♦';
@@ -16,7 +27,7 @@ const getSuitSymbol = (suit) => {
   }
 };
 
-export const PlayingCard = ({ card, isHidden = false, className = '' }) => {
+export const PlayingCard = ({ card, isHidden = false, className = '' }: PlayingCardProps) => {
   if (isHidden) {
     return (
       <motion.div
